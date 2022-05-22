@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block meta_assets %}
+    
+{% endblock %}
+
+{% block content %}
+{% include 'main_nav.html' %}
+
+<link rel="stylesheet" href="{% static 'css/open_layers_css.css' %}" />
+<link rel="stylesheet" href="{% static 'css/ol-popup.css' %}" />
+
+<style>
+    #shapefile_preview_map{width:100%;height:520px;}
+</style>
+
+<div class="p-2 my-4 bg-light">
+    <form action="" method="post" id="parcel_form" enctype="multipart/form-data">
+        <div class="shadow rounded p-4 bg-white">
+            <p class="py-3">Upload shapefile for updating database records</p>
+
+            <div class="table-responsive">
+                <table class="table table-light">
+                    
+                    {% csrf_token %}
+                    {{ parcels_upload_form.as_table }}
+                        
+                </table>
+            </div>
+
+            <div class="col-12 my-3">
+                
+                <button name='preview' id="read_data_btn" class="btn btn-outline-success">
+                    Read Data
+                </button>
+
+            </div>
+        </div>
+    </form>
+
+    {% if parcels_geojson %}
+        <div class="p-4 bg-white">
+
+            <h5>Shapefile data preview</h5>
+
+            <div id="shapefile_preview_map"></div>
+
+            <div id="popup" class="ol-popup" style="background-color: rgba(255, 255, 255, 0.95);">
+                <p id="popup-closer" class="ol-popup-closer fw-bold"></p>
+                <div class="" id="popup-content"></div>
+            </div>
+            
+            <button type="submit" id='write-db-btn' class="btn btn-outline-success my-2">
+                Upload to DB
+            </button>
+
+            <script>
+                document.querySelector('#read_data_btn').remove()
+                const parcel_json = '{{ parcels_geojson|escapejs }}'
+            </script>
+            
+            <script src="{% static 'data/js/shp_preview_map.js' %}"></script>
+            <script src="{% static 'data/js/parcels-preview-submit.js' %}"></script>
+            
+        </div>
+    {% endif %}
+    
+    
+</div>
+
+
+{% endblock %}

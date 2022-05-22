@@ -1,0 +1,42 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="{% static 'favicon_io/favicon.ico' %}" type="image/x-icon">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon_io/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon_io/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon_io/favicon-16x16.png' %}">
+    <link rel="manifest" href="{% static 'favicon_io/site.webmanifest' %}">
+
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
+    <link rel="stylesheet" href="{% static 'icons/bootstrap/bootstrap-icons.css' %}"/>
+
+    <link rel="stylesheet" href="{% static 'css/cadastre-style.css' %}"/>
+    <link rel="stylesheet" href="{% static 'css/font-style.css' %}"/>
+
+    {% block title %}
+        {% if page_title %}
+            <title>{{ page_title }} | Land Management System</title>
+        {% else %}
+            <title>Land Management System</title>
+        {% endif %}
+    {% endblock %}
+    
+    
+</head>
+
+<body>
+
+    <div class="container-sm rubik-regular-font">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <script src="{% static 'js/cadastre-utilities.js' %}"></script>
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

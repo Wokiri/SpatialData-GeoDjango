@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+
+
+<p class="h1 text-center py-5 rubik-light-font" id="main_title">
+    Land Administration Domain Model (LADM)
+</p>
+
+
+{% include 'main_nav.html' %}
+
+
+<div id="" class="bg-light rounded-3">
+
+    <div class="my-4 px-5 pt-5">
+        <p class="h4">LADM, Data and Linked Systems</p>
+    </div>
+
+    <div class="px-5 py-4">
+        <p class="h5">Site Functions:</p>
+
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">Website access by system users</li>
+            <li class="list-group-item">Navigation to site pages for parcels, beacons data</li>
+            <li class="list-group-item">Linked data principles for website interactions</li>
+            <li class="list-group-item">Data updation, addition and deletion by permitted staff</li>
+        </ul>
+    </div>
+</div>
+
+<div class="my-5 px-5 py-4 bg-light rounded-3">
+    <p class="h5 mb-5">Data Statistics</p>
+    <div class="accordion" id="stats_accordion">
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="location">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#parcel_location" aria-expanded="true" aria-controls="parcel_location">
+                  Parcels by County
+                </button>
+            </h2>
+            <div id="parcel_location" class="accordion-collapse collapse" aria-labelledby="location" data-bs-parent="#stats_accordion">
+                <div class="accordion-body">
+                    <div class="row">
+                        <div class="col-sm bg-light p-4 rounded">
+                            <p class="font-montserrat-medium text-prim-color">
+                                Parcels by county
+                            </p>
+                            <p class="font-montserrat-regular text-prim-color">
+                                The {{ num_surveyors|apnumber }} surveyor{{ num_surveyors|pluralize }} have their respective career specializations represented as shown in the graph alongside.
+                            </p>
+                        </div>
+                        <div class="col-sm d-flex justify-content-center">
+                            {{ surveyors_div|safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="landuse">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#parcel_landuse" aria-expanded="false" aria-controls="parcel_landuse">
+                  Parcels by Landuse
+                </button>
+            </h2>
+            <div id="parcel_landuse" class="accordion-collapse collapse" aria-labelledby="landuse" data-bs-parent="#stats_accordion">
+                <div class="accordion-body">
+                    <div class="row">
+                        <div class="col-sm d-flex justify-content-center">
+                            {{ parcels_div|safe }}
+                        </div>
+                        <div class="col-sm bg-light p-4 rounded">
+                            <p class="font-montserrat-medium text-prim-color">Parcels by landuse</p>
+                            <p class="font-montserrat-regular text-prim-color">
+                                The {{ num_parcels|apnumber }} parcel{{ num_parcels|pluralize }} have hold types as shown in the graph alongside.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="holdtype">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#parcel_holdtype" aria-expanded="false" aria-controls="parcel_holdtype">
+                  Parcels by Holdtype
+                </button>
+            </h2>
+            <div id="parcel_holdtype" class="accordion-collapse collapse" aria-labelledby="holdtype" data-bs-parent="#stats_accordion">
+                <div class="accordion-body">
+                    <div class="row">
+                        
+                        <div class="col-sm bg-light p-4 rounded">
+                            <p class="font-montserrat-medium text-prim-color">Parcels by holdtype</p>
+                            <p class="font-montserrat-regular text-prim-color">
+                                The {{ num_parcels|apnumber }} parcel{{ num_parcels|pluralize }} have hold types as shown in the graph alongside.
+                            </p>
+                        </div>
+
+                        <div class="col-sm d-flex justify-content-center">
+                            {{ parcels_div|safe }}
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+
+{% endblock %}
