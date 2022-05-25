@@ -17,7 +17,19 @@ from .models import (
 
 # Register your models here.
 admin.site.register(User)
-admin.site.register(Parcel)
+
+@admin.register(Parcel)
+class ParcelAdmin(admin.ModelAdmin):
+    list_display = [
+        'id',
+        'parcel_number',
+        'fr_datum',
+        'county',
+        'sub_county',
+        'land_use',
+        'hold_type',
+        'date_created',
+    ]
 admin.site.register(LandUse)
 admin.site.register(LandOwner)
 admin.site.register(Zone37SParcel)

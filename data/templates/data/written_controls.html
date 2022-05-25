@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block meta_assets %}
+    
+{% endblock %}
+
+{% block content %}
+{% include 'main_nav.html' %}
+
+<link rel="stylesheet" href="{% static 'css/open_layers_css.css' %}" />
+<link rel="stylesheet" href="{% static 'css/ol-popup.css' %}" />
+
+<style>
+    #shapefile_preview_map{width:100%;height:520px;}
+</style>
+
+
+{% for message in messages %}
+<div class="my-2">
+    <div class="alert alert-info">
+        <strong>Infomation:</strong> {{ message }}.
+    </div>
+</div>
+{% endfor %}
+
+<div class="p-2 my-4 bg-light">
+
+    {% if controls_geojson %}
+        <div class="p-4 bg-white">
+
+            <h5>Uploaded data</h5>
+
+            <div id="shapefile_preview_map"></div>
+
+            <div id="popup" class="ol-popup" style="background-color: rgba(255, 255, 255, 0.95);">
+                <p id="popup-closer" class="ol-popup-closer fw-bold"></p>
+                <div class="" id="popup-content"></div>
+            </div>
+
+            <div class="shadow rounded"></div>
+            
+                <form action="" method="post">
+                    {% csrf_token %}
+
+                    <div class="row my-2">
+
+                        <div class="col-2">
+
+                            {{ approve_parcels_form.as_p }}
+                            
+                        </div>
+
+                        <div class="col-2">
+
+                            <button type="submit" class="btn btn-outline-success">Submit</button>
+
+                        </div>
+
+                    </div>
+                    
+                </form>
+
+            </div>
+
+            <script>
+                const parcel_json = '{{ controls_geojson|escapejs }}'
+            </script>
+            
+            <script src="{% static 'data/js/controls_shp_preview_map.js' %}"></script>
+            
+        </div>
+    {% else %}
+
+        <h5>No data written</h5>
+
+    {% endif %}
+    
+    
+</div>
+
+
+{% endblock %}

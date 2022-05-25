@@ -1,17 +1,44 @@
-from django.shortcuts import render
+import json
+
+from django.db.models import Q
+
+from django.core.serializers import serialize
+
+from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views.generic.edit import (
     FormView,
 )
 
-from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon
-from django.views.generic import TemplateView
+from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon, Point, MultiPoint
 from django.db import transaction
+from django.contrib import messages
+
+from django.views.generic import (
+    TemplateView,
+    ListView,
+    UpdateView,
+    DetailView,
+    DeleteView
+)
+
+from django.contrib.auth.mixins import (
+    LoginRequiredMixin,
+    UserPassesTestMixin
+)
+
+from django.contrib.auth.views import (
+    LoginView,
+)
+
 
 from .forms import (
     ParcelsShapefileForm,
-    ParcelsInfoForm,
+    ControlsShapefileForm,
+    ApproveShapefileForm,
+    UserLoginForm
 )
+
 
 import pandas as pd
 import geopandas as gpd
@@ -25,10 +52,20 @@ from .models import (
     Zone37NParcel,
     Zone36SParcel,
     Zone36NParcel,
+    ParcelBeacon,
+    Zone37SBeacon,
+    Zone37NBeacon,
+    Zone36SBeacon,
+    Zone36NBeacon,
+)
+
+from .forms import (
+    UserSignupModelForm,
+    # UserLoginForm,
 )
 
 
-class HomePageView(TemplateView):
+class HomeView(TemplateView):
     template_name = 'data/homepage.html'
 
     def get_context_data(self, **kwargs):
@@ -37,10 +74,9 @@ class HomePageView(TemplateView):
             'page_title':'HOME',
         })
         return context
-        
 
 
-class ReadParcelsPageView(FormView):
+class ReadParcelsView(FormView):
     template_name = 'data/parcels_write.html'
     form_class = ParcelsShapefileForm
     success_url = reverse_lazy('data:home_page')
@@ -64,82 +100,377 @@ class ReadParcelsPageView(FormView):
 
                 shapefile_gdf = gpd.GeoDataFrame(shapefile_data_df, geometry='geometry')
                 shapefile_gdf.set_crs(crs, allow_override=True, inplace=True)
+                shapefile_gdf.set_index('parcel_num', inplace=True)
+                
+                
+                with transaction.atomic():
 
-                if 'preview' in request.POST:
-                    context = self.get_context_data(**kwargs)
-                    context.update({
-                        'parcels_geojson':shapefile_gdf.to_crs("EPSG:4326").to_json(),
-                    })
-                    request.session.update({
-                        'shapefile_json':shapefile_attributes,
-                        'crs':crs,
-                    })
+                    written_parcels = []
 
-                    return self.render_to_response(context)
+                    for parcel_number in shapefile_gdf.index.values.tolist():
+                        geom = GEOSGeometry(shapefile_gdf.at[parcel_number, 'geometry'].wkt, srid=request.session.get('crs'))
+                        
+                        if isinstance(geom, Polygon):
+                            geom = MultiPolygon(geom)
+
+                        parcel,_ = Parcel.objects.update_or_create(
+                            parcel_number=parcel_number,
+                            defaults={
+                                'fr_datum': shapefile_gdf.at[parcel_number, 'fr_datum'],
+                                'county': shapefile_gdf.at[parcel_number, 'county'],
+                                'sub_county': shapefile_gdf.at[parcel_number, 'sub_county'],
+                            },
+                        )
+
+                        if crs == 21037:
+                            geom_parcel,_ = Zone37SParcel.objects.update_or_create(
+                                parcel=parcel,
+                                defaults={'geom':geom}
+                            )
+                            written_parcels.append(str(geom_parcel.id))
+                        elif crs == 21096:
+                            geom_parcel,_ = Zone37NParcel.objects.update_or_create(
+                                parcel=parcel,
+                                defaults={'geom':geom}
+                            )
+                            written_parcels.append(str(geom_parcel.id))
+                        elif crs == 21097:
+                            geom_parcel,_ = Zone36SParcel.objects.update_or_create(
+                                parcel=parcel,
+                                defaults={'geom':geom}
+                            )
+                            written_parcels.append(str(geom_parcel.id))
+                        elif crs == 21036:
+                            geom_parcel,_ = Zone36NParcel.objects.update_or_create(
+                                parcel=parcel,
+                                defaults={'geom':geom}
+                            )
+                            written_parcels.append(str(geom_parcel.id))
+
+                    request.session.update({'created_parcels':written_parcels})
+                    messages.info(request, 'Parcels saved successfully')
+                    return redirect('data:writen_parcels_page')
+                            
 
         return self.form_invalid(form)
 
 
-class WriteParcelsPageView(FormView):
-    template_name = 'data/parcels_write.html'
-    form_class = ParcelsInfoForm
-    success_url = reverse_lazy('data:read_parcels_page')
+class WritenParcelsView(FormView):
+    
+    template_name = 'data/written_parcels.html'
+    form_class = ApproveShapefileForm
+    success_url = reverse_lazy('data:home_page')
+    
 
-    def get_initial(self, request):
-        """Return the initial data to use for forms on this view."""
-        return {
-            'parcels':request.session.get('shapefile_json')
-        }
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        data['approve_parcels_form'] = self.get_form()
+        return data
+        
+    def get(self, request, *args, **kwargs):
+
+        if not request.session.get('created_parcels'):
+            return redirect('data:home_page')
+
+        context = self.get_context_data()
+        zone_parcels_data = []
+
+        created_parcels = Zone37SParcel.objects.filter(Q(id__in=request.session.get('created_parcels')))
+        if created_parcels:
+            for parcel in created_parcels:
+                parcel_obj = Parcel.objects.filter(Q(zone_37s_parcel=parcel))
+                zone_parcel_data = json.loads(serialize('json', parcel_obj))
+                zone_parcels_data.append(zone_parcel_data[0])
+
+        if not created_parcels:
+            created_parcels = Zone37NParcel.objects.filter(Q(id__in=request.session.get('created_parcels')))
+            if created_parcels:
+                for parcel in created_parcels:
+                    parcel_obj = Parcel.objects.filter(Q(zone_37n_parcel=parcel))
+                    zone_parcel_data = json.loads(serialize('json', parcel_obj))
+                    zone_parcels_data.append(zone_parcel_data[0])
+
+        if not created_parcels:
+            created_parcels = Zone36SParcel.objects.filter(Q(id__in=request.session.get('created_parcels')))
+            if created_parcels:
+                for parcel in created_parcels:
+                    parcel_obj = Parcel.objects.filter(Q(zone_36s_parcel=parcel))
+                    zone_parcel_data = json.loads(serialize('json', parcel_obj))
+                    zone_parcels_data.append(zone_parcel_data[0])
+
+        if not created_parcels:
+            created_parcels = Zone36NParcel.objects.filter(Q(id__in=request.session.get('created_parcels')))
+            if created_parcels:
+                for parcel in created_parcels:
+                    parcel_obj = Parcel.objects.filter(Q(zone_36n_parcel=parcel))
+                    zone_parcel_data = json.loads(serialize('json', parcel_obj))
+                    zone_parcels_data.append(zone_parcel_data[0])
+
+
+        if created_parcels and zone_parcels_data:
+            parcels_data = json.loads(serialize('geojson', created_parcels))
+            for parcel in parcels_data['features']:
+                parcel_id = parcel['properties']['parcel']
+                for zone_parcel in zone_parcels_data:
+                    zone_parcel_id = zone_parcel['pk']
+
+                    if parcel_id == zone_parcel_id:
+                        parcel['properties'].update(zone_parcel['fields'])
+
+
+            context.update({
+                'parcels_geojson':json.dumps(parcels_data)
+            })
+            del(request.session['created_parcels'])
+            
+        return self.render_to_response(context)
 
     def post(self, request, *args, **kwargs):
-        form = self.form_class(self.get_initial(request))
+        form = self.get_form()
         if form.is_valid():
-            shapefile_data_df = pd.DataFrame(data=form.cleaned_data.get('parcels'))
-            shapefile_data_df['geometry'] = shapefile_data_df['geometry'].apply(wkt.loads)
-            shapefile_gdf = gpd.GeoDataFrame(shapefile_data_df, geometry='geometry')
-            shapefile_gdf.set_crs(request.session.get('crs'), allow_override=True, inplace=True)
-            shapefile_gdf.set_index('parcel_num', inplace=True)
-            
-            with transaction.atomic():
-                for parcel_number in shapefile_gdf.index.values.tolist():
-                    geom = GEOSGeometry(shapefile_gdf.at[parcel_number, 'geometry'].wkt, srid=request.session.get('crs'))
-                    
-                    if isinstance(geom, Polygon):
-                        geom = MultiPolygon(geom)
-
-                    parcel,_ = Parcel.objects.update_or_create(
-                        parcel_number=parcel_number,
-                        defaults={
-                            'fr_datum': shapefile_gdf.at[parcel_number, 'fr_datum'],
-                            'county': shapefile_gdf.at[parcel_number, 'county'],
-                            'sub_county': shapefile_gdf.at[parcel_number, 'sub_county'],
-                        },
-                    )
-
-                    if request.session.get('crs') == 21037:
-                        Zone37SParcel.objects.update_or_create(
-                            parcel=parcel,
-                            defaults={'geom':geom}
-                        )
-                    elif request.session.get('crs') == 21096:
-                        Zone37NParcel.objects.update_or_create(
-                            parcel=parcel,
-                            defaults={'geom':geom}
-                        )
-                    elif request.session.get('crs') == 21097:
-                        Zone36SParcel.objects.update_or_create(
-                            parcel=parcel,
-                            defaults={'geom':geom}
-                        )
-                    elif request.session.get('crs') == 21036:
-                        Zone36NParcel.objects.update_or_create(
-                            parcel=parcel,
-                            defaults={'geom':geom}
-                        )
-                  
-            del(request.session['shapefile_json'])
-            del(request.session['crs'])
+            value = form.cleaned_data.get('approve')
+            if value == 'Discard':
+                pass
             
             return self.form_valid(form)
+            
+        return self.form_invalid(form)
+
+    
+
+
+class ReadControlsView(FormView):
+    template_name = 'data/controls_write.html'
+    form_class = ControlsShapefileForm
+    success_url = reverse_lazy('data:home_page')
+
+    # from ContextMixin via FormMixin
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        data['controls_upload_form'] = data.get('form')
+        return data
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid():
+            shapefile_data = form.cleaned_data.get('shapefile')
+            shapefile_attributes = shapefile_data.get('shapefile_data')
+            crs = shapefile_data.get('crs')
+
+            if shapefile_attributes and crs:
+                shapefile_data_df = pd.DataFrame(data=shapefile_attributes)
+                shapefile_data_df['geometry'] = shapefile_data_df['geometry'].apply(wkt.loads)
+
+                shapefile_gdf = gpd.GeoDataFrame(shapefile_data_df, geometry='geometry')
+                shapefile_gdf.set_crs(crs, allow_override=True, inplace=True)
+                shapefile_gdf.set_index('name', inplace=True)
+                
+                with transaction.atomic():
+
+                    written_controls = []
+
+                    for name in shapefile_gdf.index.values.tolist():
+                        geom = GEOSGeometry(shapefile_gdf.at[name, 'geometry'].wkt, srid=request.session.get('crs'))
+
+                        if isinstance(geom, Point):
+                            geom = MultiPoint(geom)
+
+                        control,_ = ParcelBeacon.objects.update_or_create(
+                            name=name,
+                            defaults={
+                                'name': name,
+                            }
+                        )
+
+                        if crs == 21037:
+                            geom_control, created = Zone37SBeacon.objects.update_or_create(
+                                beacon=control,
+                                defaults={'geom':geom}
+                            )
+                            if created:
+                                intersecting_parcels = Zone37SParcel.objects.select_related('parcel').filter(geom__intersects=geom)
+                                for parcel in intersecting_parcels:
+                                    parcel_obj = Parcel.objects.get(parcel_number=parcel)
+                                    control.parcel.add(parcel_obj)
+
+                            written_controls.append(str(geom_control.id))
+                        elif crs == 21096:
+                            geom_control, created = Zone37NBeacon.objects.update_or_create(
+                                beacon=control,
+                                defaults={'geom':geom}
+                            )
+                            if created:
+                                intersecting_parcels = Zone37NParcel.objects.select_related('parcel').filter(geom__intersects=geom)
+                                for parcel in intersecting_parcels:
+                                    parcel_obj = Parcel.objects.get(parcel_number=parcel)
+                                    control.parcel.add(parcel_obj)
+
+                            written_controls.append(str(geom_control.id))
+                        elif crs == 21097:
+                            geom_control, created = Zone36SBeacon.objects.update_or_create(
+                                beacon=control,
+                                defaults={'geom':geom}
+                            )
+                            if created:
+                                intersecting_parcels = Zone36SParcel.objects.select_related('parcel').filter(geom__intersects=geom)
+                                for parcel in intersecting_parcels:
+                                    parcel_obj = Parcel.objects.get(parcel_number=parcel)
+                                    control.parcel.add(parcel_obj)
+
+                            written_controls.append(str(geom_control.id))
+                        elif crs == 21036:
+                            geom_control, created = Zone36NBeacon.objects.update_or_create(
+                                beacon=control,
+                                defaults={'geom':geom}
+                            )
+                            if created:
+                                intersecting_parcels = Zone36NParcel.objects.select_related('parcel').filter(geom__intersects=geom)
+                                for parcel in intersecting_parcels:
+                                    parcel_obj = Parcel.objects.get(parcel_number=parcel)
+                                    control.parcel.add(parcel_obj)
+
+                            written_controls.append(str(geom_control.id))
+
+                    request.session.update({'created_controls':written_controls})
+                    messages.info(request, 'Controls saved successfully')
+                    return redirect('data:writen_controls_page')
+                            
 
         return self.form_invalid(form)
+
+
+class WritenControlsView(FormView):
+    
+    template_name = 'data/written_controls.html'
+    form_class = ApproveShapefileForm
+    success_url = reverse_lazy('data:home_page')
+    
+
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        data['approve_controls_form'] = self.get_form()
+        return data
+        
+    def get(self, request, *args, **kwargs):
+
+        if not request.session.get('created_controls'):
+            return redirect('data:home_page')
+
+        context = self.get_context_data()
+        zone_controls_data = []
+
+        created_controls = Zone37SBeacon.objects.filter(Q(id__in=request.session.get('created_controls')))
+        if created_controls:
+            for control in created_controls:
+                control_obj = ParcelBeacon.objects.filter(Q(zone_37s_beacon=control))
+                zone_control_data = json.loads(serialize('json', control_obj))
+                zone_controls_data.append(zone_control_data[0])
+
+        if not created_controls:
+            created_controls = Zone37NBeacon.objects.filter(Q(id__in=request.session.get('created_controls')))
+            if created_controls:
+                for control in created_controls:
+                    control_obj = ParcelBeacon.objects.filter(Q(zone_37n_beacon=control))
+                    zone_control_data = json.loads(serialize('json', control_obj))
+                    zone_controls_data.append(zone_control_data[0])
+
+        if not created_controls:
+            created_controls = Zone36SBeacon.objects.filter(Q(id__in=request.session.get('created_controls')))
+            if created_controls:
+                for control in created_controls:
+                    control_obj = ParcelBeacon.objects.filter(Q(zone_36s_beacon=control))
+                    zone_control_data = json.loads(serialize('json', control_obj))
+                    zone_controls_data.append(zone_control_data[0])
+
+        if not created_controls:
+            created_controls = Zone36NBeacon.objects.filter(Q(id__in=request.session.get('created_controls')))
+            if created_controls:
+                for control in created_controls:
+                    control_obj = ParcelBeacon.objects.filter(Q(zone_36n_beacon=control))
+                    zone_control_data = json.loads(serialize('json', control_obj))
+                    zone_controls_data.append(zone_control_data[0])
+
+
+        if created_controls and zone_controls_data:
+            controls_data = json.loads(serialize('geojson', created_controls))
+            for control in controls_data['features']:
+                control_id = control['properties']['beacon']
+                for zone_beacon in zone_controls_data:
+                    zone_beacon_id = zone_beacon['pk']
+
+                    if zone_beacon_id == control_id:
+                        control['properties'].update(zone_beacon['fields'])
+
+
+            context.update({
+                'controls_geojson':json.dumps(controls_data)
+            })
+            print(json.dumps(controls_data))
+            del(request.session['created_controls'])
+            
+        return self.render_to_response(context)
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid():
+            value = form.cleaned_data.get('approve')
+            if value == 'Discard':
+                pass
+            
+            return self.form_valid(form)
+            
+        return self.form_invalid(form)
+
+    
+
+
+
+class SignUpView(FormView):
+    template_name = 'data/sign_up.html'
+
+    form_class = UserSignupModelForm
+    success_url = reverse_lazy('data:user_profile_page')
+
+    def get_context_data(self, **kwargs):
+        data = super(SignUpView, self).get_context_data(**kwargs)
+        data['signup_form'] = data.get('form')
+        return data
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('data:user_profile_page')
+
+        context = self.get_context_data(**kwargs)
+        context.update({
+            'page_title':f'User Signup'
+        })
+        return self.render_to_response(context)
+        
+    
+    def post(self, request):
+        form = self.get_form()
+        if form.is_valid():
+            new_user = form.save()
+            if new_user:
+                return self.form_valid(form)
+        
+        else:
+            return self.form_invalid(form)
+
+
+
+
+class UserProfileView(LoginRequiredMixin, TemplateView):
+    template_name = 'data/user_profile.html'
+    
+    
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        context.update({
+            'page_title':f'{request.user.full_name} Profile'
+        })
+        return self.render_to_response(context)
+        
+
+class LoginUserView(LoginView):
+    authentication_form = UserLoginForm

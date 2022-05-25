@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% include 'main_nav.html' %}
+
+
+<div class="my-4">
+    <div class="shadow rounded p-4 bg-white">
+
+        <p class="h5 py-4 font-montserrat-medium">
+            Enter Valid Credentials to login
+        </p>
+
+        <p class="font-montserrat-medium">
+            No active account?
+            <a class="inline-link font-montserrat-light" href="{% url 'data:user_signup_page' %}">
+                signup
+            </a>
+        </p>
+    
+        <div class="px-5">
+            <div class="">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <p class="text-error-color font-montserrat-bold">
+                        Please enter the correct email address and password.
+                        Note that both fields may be case-sensitive.
+                    </p>
+                    {% endif %}
+    
+                    
+                    {{ form.username.errors }}
+                    <div class="form-floating my-2">
+                        {{ form.username }}
+                        <label for="id_username">{{ form.username.label }}</label>
+                    </div>
+    
+                    {{ form.password.errors }}
+                    <div class="form-floating my-2">
+                        {{ form.password }}
+                        <label for="id_password">{{ form.password.label }}</label>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center my-4">
+                        <button type="submit" class="btn btn-info">login</button>
+                    </div>
+                </form>
+            </div>
+    
+        </div>
+        
+    
+        
+    </div>
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+
+
+{% block content %}
+{% include 'main_nav.html' %}
+
+<p class="text-center pt-4 h6">
+    You are logged in with email address: <mark>{{ request.user.email }}</mark><br>
+</p>
+<div class="my-3 d-flex justify-content-center font-barlow-medium">
+  <a class="px-4 inline-link" href="{% url 'logout' %}">logout</a>
+</div>
+
+{% for message in messages %}
+  <div class="alert alert-info">
+    <strong>Info!</strong> {{ message }}.
+  </div>
+{% endfor %}
+
+
+<div class="py-3 h3 font-montserrat-medium text-prim-color bg-white rounded">
+  <div class="d-flex align-items-center">
+    <div class="text-center fs-6 font-montserrat-thin">
+      <img src="{{ request.user.thumbnail_img.url }}" width="100" height="100" class="img-thumbnail rounded-circle" alt="user's thumbnail">
+    </div>
+    <p class="px-4 h5 font-montserrat-medium">
+        {{ request.user.full_name }}'s DashBoard
+    </p>
+  </div>
+
+
+  <div class="my-3 p-5 bg-light">
+    <table class="table table-striped table-hover table-bordered">
+        <caption>User's details</caption>
+        <thead>
+          <tr>
+            <th scope="col">Full Name</th>
+            <th scope="col">Email</th>
+            <th scope="col">User Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ request.user.full_name }}</td>
+            <td>{{ request.user.email }}</td>
+            {% if request.user.is_active %}
+            <td>Active</td>
+            {% else %}
+            <td>Not Active</td>
+            {% endif %}
+          </tr>
+        </tbody>
+      </table>
+      
+  </div>
+</div>
+
+
+
+
+{% endblock %}

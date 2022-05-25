@@ -1,0 +1,69 @@
+{% extends 'base.html' %} {% block content %}
+
+{% include 'main_nav.html' %}
+
+<div class="my-4">
+    <div class="shadow rounded p-4 bg-white">
+
+        <p class="h5 py-4 font-montserrat-medium">
+            Enter Valid Credentials to create an account
+        </p>
+
+        <p class="font-montserrat-medium">
+            Already have an account?
+            <a class="inline-link font-montserrat-light" href="{% url 'login' %}">
+                login
+            </a>
+        </p>
+    
+        <div class="py-2 px-5">
+            <div class="">
+                <form action="" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+            
+                {{ signup_form.email.errors }}
+                <div class="form-floating my-2">
+                    {{ signup_form.email }}
+                    <label for="id_email">{{ signup_form.email.label }}</label>
+                </div>
+            
+                {{ signup_form.full_name.errors }}
+                <div class="form-floating my-2">
+                    {{ signup_form.full_name }}
+                    <label for="id_full_name">{{ signup_form.full_name.label }}</label>
+                </div>
+
+                {{ signup_form.thumbnail_img.errors }}
+                <div class="form-floating my-2">
+                    {{ signup_form.thumbnail_img }}
+                    <label for="id_full_name">{{ signup_form.thumbnail_img.label }}</label>
+                </div>
+            
+                
+                {{ signup_form.password2.errors }}
+                <div class="form-floating my-2">
+                    {{ signup_form.password1 }}
+                    <label for="id_password1">{{ signup_form.password1.label }}</label>
+                </div>
+                
+                <div class="form-floating my-2">
+                    {{ signup_form.password2 }}
+                    <label for="id_password2">{{ signup_form.password2.label }}</label>
+                </div>
+    
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center my-4">
+                    <button type="submit" class="btn btn-info">Signup</button>
+                </div>
+                
+                </form>
+            </div>
+    
+        </div>
+        
+    </div>
+
+</div>
+
+
+
+{% endblock %}

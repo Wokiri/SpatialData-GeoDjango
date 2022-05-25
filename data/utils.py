@@ -40,8 +40,11 @@ class PROJECTION(models.TextChoices):
 def validate_shapefile(*, file, geom_type):
 
     response_data = {}
-    
-    required_columns = [
+
+    expected_shapes = []
+    if geom_type == 'Polygon':
+        expected_shapes = ['Polygon', 'MultiPolygon', 'Polygon25D', 'MultiPolygon25D']
+        required_columns = [
         'parcel_num',
         'fr_datum',
         'county',
@@ -49,13 +52,11 @@ def validate_shapefile(*, file, geom_type):
         'hold_type',
         'land_use',
     ]
-    
-
-    expected_shapes = []
-    if geom_type == 'Polygon':
-        expected_shapes = ['Polygon', 'MultiPolygon', 'Polygon25D', 'MultiPolygon25D']
     elif geom_type == 'Point':
         expected_shapes = ['Point', 'MultiPoint', 'Point25D', 'MultiPoint25D']
+        required_columns = [
+            'name',
+        ]
 
     if not expected_shapes:
         response_data.update({
@@ -164,17 +165,23 @@ def validate_shapefile(*, file, geom_type):
                     'code': 'bad_file',
                 })
                 return response_data
-                
 
-        shapefile_data = {
-            'parcel_num': layer.get_fields('parcel_num'),
-            'fr_datum': layer.get_fields('fr_datum'),
-            'county': layer.get_fields('county'),
-            'sub_county': layer.get_fields('sub_county'),
-            'hold_type': layer.get_fields('hold_type'),
-            'land_use': layer.get_fields('land_use'),
-            'geometry': [feat_geom.wkt for feat_geom in layer.get_geoms()]
-        }
+        
+        if geom_type == 'Polygon':
+            shapefile_data = {
+                'parcel_num': layer.get_fields('parcel_num'),
+                'fr_datum': layer.get_fields('fr_datum'),
+                'county': layer.get_fields('county'),
+                'sub_county': layer.get_fields('sub_county'),
+                'hold_type': layer.get_fields('hold_type'),
+                'land_use': layer.get_fields('land_use'),
+                'geometry': [feat_geom.wkt for feat_geom in layer.get_geoms()]
+            }
+        else:
+            shapefile_data = {
+                'name': layer.get_fields('name'),
+                'geometry': [feat_geom.wkt for feat_geom in layer.get_geoms()]
+            }
         
         response_data.update({
             'is_data_valid': True,
