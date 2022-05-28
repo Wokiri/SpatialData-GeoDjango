@@ -20,7 +20,7 @@
     <div class="shadow-sm py-4 px-2 mb-4 bg-white">
 
         {% if existing_parcels_geojson %}
-        <p class="h5 text-success mb-3">Existing Beacons</p>
+        <p class="h5 text-success mb-3">Existing Parcels</p>
 
         <div class="row">
             <div class="col-md-9">
@@ -38,7 +38,7 @@
           <script src="{% static 'data/js/existing_parcels_map.js' %}"></script>
           {% else %}
 
-          <p class="h5 text-dark mb-2">No Existing Beacons</p>
+          <p class="h5 text-dark mb-2">No Existing Parcels</p>
 
           {% endif %}
     </div>
