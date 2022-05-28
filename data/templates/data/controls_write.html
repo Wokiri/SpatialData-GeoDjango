@@ -8,14 +8,43 @@
 {% block content %}
 {% include 'main_nav.html' %}
 
+<link rel="stylesheet" href="{% static 'css/open_layers_css.css' %}" />
+
 
 <style>
     #shapefile_preview_map{width:100%;height:520px;}
 </style>
 
-<div class="p-2 my-4 bg-light">
+<div class="p-4 my-4 bg-white">
+
+    <div class="shadow-sm py-4 px-2 mb-4 bg-white">
+
+        {% if existing_controls_geojson %}
+        <p class="h5 text-success mb-3">Existing Beacons</p>
+
+        <div class="row">
+            <div class="col-md-9">
+              <div id="shapefile_preview_map"></div>
+            </div>
+            <div class="col bg-light">
+              <div id="detail_content" class="p-2"></div>
+            </div>
+          </div>
+
+            <script>
+                const existing_controls_geojson = '{{ existing_controls_geojson|escapejs }}'
+            </script>
+
+          <script src="{% static 'data/js/existing_controls_map.js' %}"></script>
+          {% else %}
+
+          <p class="h5 text-dark mb-2">No Existing Beacons</p>
+
+          {% endif %}
+    </div>
+
     <form action="" method="post" enctype="multipart/form-data">
-        <div class="shadow rounded p-4 bg-white">
+        <div class="shadow-sm py-4 px-2 mb-4 bg-white">
             <p class="py-3">Upload shapefile for updating database records</p>
 
             <div class="table-responsive">
@@ -28,11 +57,9 @@
             </div>
 
             <div class="my-2">
-                
                 <button type='submit' id="read_data_btn" class="btn btn-outline-success">
                     Upload
                 </button>
-
             </div>
         </div>
     </form>

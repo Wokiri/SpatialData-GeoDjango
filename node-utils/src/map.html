@@ -7,67 +7,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Map</title>
     <style>
-        #shapefile_preview_map{width:100%;height:600px;}
-        .ol-popup {
-        position: absolute;
-        background-color: white;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #cccccc;
-        bottom: 12px;
-        left: -50px;
-        min-width: 280px;
-      }
-      .ol-popup:after, .ol-popup:before {
-        top: 100%;
-        border: solid transparent;
-        content: " ";
-        height: 0;
-        width: 0;
-        position: absolute;
-        pointer-events: none;
-      }
-      .ol-popup:after {
-        border-top-color: white;
-        border-width: 10px;
-        left: 48px;
-        margin-left: -10px;
-      }
-      .ol-popup:before {
-        border-top-color: #cccccc;
-        border-width: 11px;
-        left: 48px;
-        margin-left: -11px;
-      }
-      .ol-popup-closer {
-        text-decoration: none;
-        position: absolute;
-        top: 2px;
-        right: 8px;
-      }
-      .ol-popup-closer:after {
-        content: "✖";
-      }
+        #shapefile_preview_map{width:100%;height:720px;}
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="my-4 bg-light font-montserrat-medium">
-
-            <div class="my-2">
-                <h5>Shapefile data preview</h5>
-
-                <div id="shapefile_preview_map"></div>
-
-                <div id="popup" class="ol-popup" style="background-color: rgba(255, 255, 255, 0.95);">
-                    <p id="popup-closer" class="ol-popup-closer fw-bold"></p>
-                    <div class="" id="popup-content"></div>
-                </div>
-            </div>
-
+    <div class="my-4 bg-light font-montserrat-medium">
+      
+      <h5>Shapefile data preview</h5>
+      
+        <div class="row">
+          <div class="col-md-9">
+            <div id="shapefile_preview_map" class="col-8"></div>
+          </div>
+          <div class="col">
+            <div id="detail_content" class="col"></div>
+          </div>
         </div>
+
     </div>
 </body>
 

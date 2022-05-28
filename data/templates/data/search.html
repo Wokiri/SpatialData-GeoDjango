@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+
+{% block content %}
+{% include 'main_nav.html' %}
+
+<div class="mt-5 mb-1">
+    <div class="shadow rounded p-4 bg-white">
+        <h4>Search for resources</h4>
+        <p class="mb-3">Search parcels, controls or surveyors using the search bar below</p>
+
+        <form action="" method="get">
+            <div class="input-group mb-3">
+                <div class="input-group-text p-0">
+                    {{ search_form.category }}
+                </div>
+                {{ search_form.search_value }}
+                <button class="input-group-text shadow-none px-4 btn btn-outline btn-outline-info" type="submit">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if search_value and category_value %}
+<div class="p-4 bg-light">
+    <div class="list-group p-4 bg-light">
+        <p class="lead">{{ search_results|length|apnumber|capfirst }} {{ category_value }} search result{{ search_results|pluralize }} for <span class="fw-bold">{{ search_value }}:</span></p>
+        {% for result in search_results %}
+        <a href="{{ result.get_absolute_url }}" class="bg-white text-success list-group-item list-group-item-action active mt-1" aria-current="true">
+          <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1 fw-bold">{{ result }}</h5>
+            <small>View details</small>
+          </div>
+
+          {% if result.bio %}
+          <p class="mb-1 py-2">{{ result.bio|truncatewords:"12" }}</p>
+          {% endif %}
+
+          {% if result.description %}
+          <p class="mb-1 py-2">{{ result.description|truncatewords:"12" }}</p>
+          {% endif %}
+          
+        </a>
+        {% endfor %}
+    </div>
+    
+
+    <div class="pagination">
+        <span class="step-links">
+        {% if page_obj.has_previous %}
+        <a href="{{ full_page_url }}&page=1">&laquo; first</a>
+        <a href="{{ full_page_url }}&page={{ page_obj.previous_page_number }}">previous</a>
+        {% endif %}
+        <span class="current">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+        </span>
+        {% if page_obj.has_next %}
+        <a href="{{ full_page_url }}&page={{ page_obj.next_page_number }}">next</a>
+        <a href="{{ full_page_url }}&page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+        </span>
+    </div>
+</div>
+{% endif %}
+
+
+
+{% endblock %}

@@ -178,3 +178,34 @@ class UserLoginForm(AuthenticationForm):
         )
     )
     password = forms.CharField(label=_("Password"), widget=password_widget)
+
+
+
+
+Category =(
+    ("", "Make a Selection"),
+    ("parcels", "Parcels"),
+    ("beacons", "Beacons"),
+)
+
+class ExploreForm(forms.Form):
+
+    category = forms.ChoiceField(
+        label='',
+        widget=forms.Select(
+            attrs={
+                'class': "form-select",
+            },
+        ),
+        choices=Category,
+    )
+
+    search_value = forms.CharField(
+        label='',
+        widget=forms.TextInput(
+            attrs={
+                'class': 'form-control',
+                'placeholder': 'search value'
+            }
+        )
+    )

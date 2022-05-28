@@ -6,8 +6,6 @@ from django.contrib.gis.gdal import (
 )
 
 from django.utils.translation import gettext_lazy as _
-
-
 from django.contrib.gis.db import models
 
 class COUNTIES(models.TextChoices):
@@ -114,12 +112,12 @@ def validate_shapefile(*, file, geom_type):
                 })
                 return response_data
 
-            shp_zip_obj.extractall(path=temporary_dir)
+            shp_zip_obj.extractall(path=str(temporary_dir))
 
         shp_to_read = ''
         for child in Path(temporary_dir).iterdir():
             if child.suffix == '.shp':
-                shp_to_read = child
+                shp_to_read = str(child)
                 
         dataSource = DataSource(shp_to_read)
         
@@ -193,3 +191,56 @@ def validate_shapefile(*, file, geom_type):
 
 
 
+
+
+def get_all_controls_geojson():
+    
+    # controls = ParcelBeacon.objects.filter(Q(zone_37s_beacon=control))
+    beacons = Zone37SParcel.objects.select_related('parcel')
+
+    print(beacons)
+
+
+    # if created_controls:
+    #     for control in created_controls:
+    #         control_obj = ParcelBeacon.objects.filter(Q(zone_37s_beacon=control))
+    #         zone_control_data = json.loads(serialize('json', control_obj))
+    #         zone_controls_data.append(zone_control_data[0])
+
+    # if not created_controls:
+    #     created_controls = Zone37NBeacon.objects.filter(Q(id__in=request.session.get('created_controls')))
+    #     if created_controls:
+    #         for control in created_controls:
+    #             control_obj = ParcelBeacon.objects.filter(Q(zone_37n_beacon=control))
+    #             zone_control_data = json.loads(serialize('json', control_obj))
+    #             zone_controls_data.append(zone_control_data[0])
+
+    # if not created_controls:
+    #     created_controls = Zone36SBeacon.objects.filter(Q(id__in=request.session.get('created_controls')))
+    #     if created_controls:
+    #         for control in created_controls:
+    #             control_obj = ParcelBeacon.objects.filter(Q(zone_36s_beacon=control))
+    #             zone_control_data = json.loads(serialize('json', control_obj))
+    #             zone_controls_data.append(zone_control_data[0])
+
+    # if not created_controls:
+    #     created_controls = Zone36NBeacon.objects.filter(Q(id__in=request.session.get('created_controls')))
+    #     if created_controls:
+    #         for control in created_controls:
+    #             control_obj = ParcelBeacon.objects.filter(Q(zone_36n_beacon=control))
+    #             zone_control_data = json.loads(serialize('json', control_obj))
+    #             zone_controls_data.append(zone_control_data[0])
+
+
+    # if created_controls and zone_controls_data:
+    #     controls_data = json.loads(serialize('geojson', created_controls))
+    #     for control in controls_data['features']:
+    #         control_id = control['properties']['beacon']
+    #         for zone_beacon in zone_controls_data:
+    #             zone_beacon_id = zone_beacon['pk']
+
+    #             if zone_beacon_id == control_id:
+    #                 control['properties'].update(zone_beacon['fields'])
+
+
+    #     return json.dumps(controls_data)

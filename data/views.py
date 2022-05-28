@@ -17,14 +17,11 @@ from django.contrib import messages
 from django.views.generic import (
     TemplateView,
     ListView,
-    UpdateView,
-    DetailView,
-    DeleteView
+    DetailView
 )
 
 from django.contrib.auth.mixins import (
     LoginRequiredMixin,
-    UserPassesTestMixin
 )
 
 from django.contrib.auth.views import (
@@ -36,7 +33,9 @@ from .forms import (
     ParcelsShapefileForm,
     ControlsShapefileForm,
     ApproveShapefileForm,
-    UserLoginForm
+    UserSignupModelForm,
+    UserLoginForm,
+    ExploreForm,
 )
 
 
@@ -57,12 +56,41 @@ from .models import (
     Zone37NBeacon,
     Zone36SBeacon,
     Zone36NBeacon,
+    LandOwner,
 )
 
-from .forms import (
-    UserSignupModelForm,
-    # UserLoginForm,
-)
+def get_all_controls_geojson():
+
+    if Zone37SBeacon.objects.exists() and ParcelBeacon.objects.exists():
+        controls_with_geom = json.loads(serialize('geojson', Zone37SBeacon.objects.select_related('beacon')))
+        controls_with_attrs = json.loads(serialize('json', ParcelBeacon.objects.all()))
+        for control_geom in controls_with_geom['features']:
+            control_geom_id = control_geom['properties']['beacon']
+            for control_attr in controls_with_attrs:
+                control_attr_id = control_attr['pk']
+
+                if control_geom_id == control_attr_id:
+                    control_geom['properties'].update(control_attr['fields'])
+        
+        controls_geojson = json.dumps(controls_with_geom)
+        return controls_geojson
+
+
+def get_all_parcels_geojson():
+
+    if Zone37SParcel.objects.exists() and Parcel.objects.exists():
+        parcels_with_geom = json.loads(serialize('geojson', Zone37SParcel.objects.select_related('parcel')))
+        parcels_with_attrs = json.loads(serialize('json', Parcel.objects.all()))
+        for parcel_geom in parcels_with_geom['features']:
+            parcel_geom_id = parcel_geom['properties']['parcel']
+            for parcel_attr in parcels_with_attrs:
+                parcel_attr_id = parcel_attr['pk']
+
+                if parcel_geom_id == parcel_attr_id:
+                    parcel_geom['properties'].update(parcel_attr['fields'])
+        
+        parcels_geojson = json.dumps(parcels_with_geom)
+        return parcels_geojson
 
 
 class HomeView(TemplateView):
@@ -85,6 +113,7 @@ class ReadParcelsView(FormView):
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
         data['parcels_upload_form'] = data.get('form')
+        data['existing_parcels_geojson'] = get_all_parcels_geojson()
         return data
 
     def post(self, request, *args, **kwargs):
@@ -108,7 +137,11 @@ class ReadParcelsView(FormView):
                     written_parcels = []
 
                     for parcel_number in shapefile_gdf.index.values.tolist():
-                        geom = GEOSGeometry(shapefile_gdf.at[parcel_number, 'geometry'].wkt, srid=request.session.get('crs'))
+
+                        try:
+                            geom = GEOSGeometry(shapefile_gdf.at[parcel_number, 'geometry'].wkt, srid=request.session.get('crs'))
+                        except Exception:
+                            continue
                         
                         if isinstance(geom, Polygon):
                             geom = MultiPolygon(geom)
@@ -221,7 +254,7 @@ class WritenParcelsView(FormView):
             context.update({
                 'parcels_geojson':json.dumps(parcels_data)
             })
-            del(request.session['created_parcels'])
+            del request.session['created_parcels']
             
         return self.render_to_response(context)
 
@@ -248,6 +281,7 @@ class ReadControlsView(FormView):
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
         data['controls_upload_form'] = data.get('form')
+        data['existing_controls_geojson'] = get_all_controls_geojson()
         return data
 
     def post(self, request, *args, **kwargs):
@@ -270,7 +304,11 @@ class ReadControlsView(FormView):
                     written_controls = []
 
                     for name in shapefile_gdf.index.values.tolist():
-                        geom = GEOSGeometry(shapefile_gdf.at[name, 'geometry'].wkt, srid=request.session.get('crs'))
+                        
+                        try:
+                            geom = GEOSGeometry(shapefile_gdf.at[name, 'geometry'].wkt, srid=request.session.get('crs'))
+                        except Exception:
+                            continue
 
                         if isinstance(geom, Point):
                             geom = MultiPoint(geom)
@@ -405,8 +443,7 @@ class WritenControlsView(FormView):
             context.update({
                 'controls_geojson':json.dumps(controls_data)
             })
-            print(json.dumps(controls_data))
-            del(request.session['created_controls'])
+            del request.session['created_controls']
             
         return self.render_to_response(context)
 
@@ -420,9 +457,6 @@ class WritenControlsView(FormView):
             return self.form_valid(form)
             
         return self.form_invalid(form)
-
-    
-
 
 
 class SignUpView(FormView):
@@ -474,3 +508,94 @@ class UserProfileView(LoginRequiredMixin, TemplateView):
 
 class LoginUserView(LoginView):
     authentication_form = UserLoginForm
+
+
+class OwnersListView(ListView):
+    queryset = LandOwner.objects.all()
+    context_object_name = 'ownners_list'
+    template_name = 'data/ownners_list.html'
+
+    def get_context_data(self, ** kwargs):
+        context = super().get_context_data( ** kwargs)
+        context.update({
+            'page_title':'Parcels Owners',
+            'num_owners':self.queryset.count(),
+        })
+        return context
+       
+       
+
+
+class SearchView(TemplateView, FormView, ListView):
+    template_name = 'data/search.html'
+    form_class = ExploreForm
+    context_object_name = 'search_results'
+    paginate_by = 10
+
+
+    def get_context_data(self, request, **kwargs):
+        data = super().get_context_data(**kwargs)
+        data['full_page_url'] = request.get_full_path()
+        data['search_form'] = data.get('form')
+        data['search_value'] = request.GET.get('search_value')
+        data['category_value'] = request.GET.get('category')
+        return data
+
+    def get_queryset(self, request, **kwargs):
+        if 'category' in request.GET and 'search_value' in request.GET:
+            search_value = request.GET.get('search_value')
+            category = request.GET.get('category')
+            
+            if category == 'parcels':
+                queryset = Parcel.objects.filter(
+                    Q(parcel_number__icontains=search_value) |
+                    Q(fr_datum__icontains=search_value) |
+                    Q(county__icontains=search_value) |
+                    Q(sub_county__icontains=search_value) |
+                    Q(hold_type__icontains=search_value)
+                )
+            elif category == 'beacons':
+                queryset = ParcelBeacon.objects.filter(name__icontains=search_value)
+            return queryset
+
+        else:
+            return []
+            
+
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset(request)
+        context = self.get_context_data(request, **kwargs)
+        return self.render_to_response(context)
+        
+
+
+class ParcelDetailView(DetailView):
+    template_name = 'data/parcel_detail.html' # Also the default template
+    model = Parcel
+    context_object_name = 'parcel'
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        context = self.get_context_data(object=self.object)
+
+        if self.get_object():
+            parcels_with_geom = json.loads(serialize('geojson', Zone37SParcel.objects.select_related('parcel').filter(parcel=self.get_object())))
+            parcels_with_attrs = json.loads(serialize('json', Parcel.objects.filter(id=self.get_object().id)))
+            
+            for parcel_geom in parcels_with_geom['features']:
+                parcel_geom_id = parcel_geom['properties']['parcel']
+                for parcel_attr in parcels_with_attrs:
+                    parcel_attr_id = parcel_attr['pk']
+
+                    if parcel_geom_id == parcel_attr_id:
+                        parcel_geom['properties'].update(parcel_attr['fields'])
+            
+            parcels_geojson = json.dumps(parcels_with_geom)
+        
+        
+        context.update({
+            'page_title':self.get_object().parcel_number,
+            "parcel_geojson":parcels_geojson
+        })
+        return self.render_to_response(context)
+

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block meta_assets %}
+    
+{% endblock %}
+
+{% block content %}
+{% include 'main_nav.html' %}
+
+<link rel="stylesheet" href="{% static 'css/open_layers_css.css' %}" />
+
+
+<style>
+    #shapefile_preview_map{width:100%;height:720px;}
+</style>
+
+<div class="p-4 my-4 bg-white">
+
+    <div class="p-4 px-2 mb-4 bg-white">
+        <p class="h5 text-dark text-center p-3 mb-3">{{ parcel.parcel_number }}</p>
+
+        <div class="row">
+            <div class="col-md-9">
+              <div id="shapefile_preview_map"></div>
+            </div>
+            <div class="col bg-light shadow">
+              <div id="detail_content" class="p-2">
+                <p class="">FR Datum: {{ parcel.fr_datum }}</p>
+                <p class="">County: {{ parcel.county }}</p>
+                <p class="">Subcounty: {{ parcel.sub_county }}</p>
+                <p class="">Land use: {{ parcel.land_use }}</p>
+                <p class="">Hold type: {{ parcel.hold_type }}</p>
+                <p class="">Date Surveyed: {{ parcel.date_created }}</p>
+
+                {% if parcel.owners.all %}
+                
+                <p class='fs-6 fw-light lh-1'>Parcel owner(s):</p>
+                <ol class="list-group list-group-numbered">'
+                {% for owner in parcel.owners %}
+                    <li class="list-group-item">{{ owner }}</li>
+                {% endfor %}
+                </ol>
+
+                {% else %}
+                    <p class="h6">No owner(s) listed for this parcel</p>
+                {% endif %}
+
+              </div>
+            </div>
+          </div>
+
+            <script>
+                const parcel_geojson = '{{ parcel_geojson|escapejs }}'
+            </script>
+
+          <script src="{% static 'data/js/parcel_detail_map.js' %}"></script>
+    </div>
+    
+</div>
+
+
+{% endblock %}

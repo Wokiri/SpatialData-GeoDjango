@@ -84,6 +84,9 @@ class Parcel(models.Model):
     
     def __str__(self):
         return self.parcel_number
+
+    def get_absolute_url(self):
+        return reverse('data:parcel_page', kwargs={'pk' : self.id})
     
 
 
@@ -119,7 +122,13 @@ class Zone36NParcel(models.Model):
 class ParcelBeacon(models.Model):
     id = models.UUIDField(primary_key=True, unique=True, editable=True, default=uuid.uuid4)
     name = models.CharField(_('station name'), max_length=20)
-    parcel = models.ManyToManyField(Parcel, related_name='parcel_beacons', blank=True)
+    parcels = models.ManyToManyField(Parcel, related_name='parcel_beacons', blank=True)
+
+    def __str__(self):
+        return self.name
+
+    # def get_absolute_url(self):
+    #     return reverse('data:control_page', kwargs={'pk' : self.id})
     
 
 class Zone37SBeacon(models.Model):

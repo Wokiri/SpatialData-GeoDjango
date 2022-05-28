@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+{% include 'main_nav.html' %}
+
+
+<div class="my-4 shadow rounded p-4 bg-white">
+    <div class="alert alert-primary">
+        <strong>Records:</strong> {{ num_owners|default:"No"|apnumber|capfirst }} parcel owners{{ num_controls|pluralize }}
+    </div>
+
+    <ol class="list-group list-group-numbered">
+        {% for owner in ownners_list %}
+            <li class="list-group-item">{{ owner }}</li>
+        {% empty %}
+            <h5>No owners yet</h5>
+        {% endfor %}
+    </ol>
+</div>
+
+
+
+{% endblock %}

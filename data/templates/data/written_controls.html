@@ -31,12 +31,14 @@
 
             <h5>Uploaded data</h5>
 
-            <div id="shapefile_preview_map"></div>
-
-            <div id="popup" class="ol-popup" style="background-color: rgba(255, 255, 255, 0.95);">
-                <p id="popup-closer" class="ol-popup-closer fw-bold"></p>
-                <div class="" id="popup-content"></div>
-            </div>
+            <div class="row">
+                <div class="col-md-8">
+                  <div id="shapefile_preview_map"></div>
+                </div>
+                <div class="col bg-light">
+                  <div id="detail_content" class="p-2"></div>
+                </div>
+              </div>
 
             <div class="shadow rounded"></div>
             
@@ -45,13 +47,13 @@
 
                     <div class="row my-2">
 
-                        <div class="col-2">
+                        <div class="col-md-2">
 
-                            {{ approve_parcels_form.as_p }}
+                            {{ approve_controls_form.as_p }}
                             
                         </div>
 
-                        <div class="col-2">
+                        <div class="col-md-2">
 
                             <button type="submit" class="btn btn-outline-success">Submit</button>
 
@@ -64,7 +66,7 @@
             </div>
 
             <script>
-                const parcel_json = '{{ controls_geojson|escapejs }}'
+                const controls_geojson = '{{ controls_geojson|escapejs }}'
             </script>
             
             <script src="{% static 'data/js/controls_shp_preview_map.js' %}"></script>
@@ -78,6 +80,5 @@
     
     
 </div>
-
 
 {% endblock %}
